@@ -30,6 +30,26 @@ public class CustomerControllerIT {
     @Autowired
     CustomerMapper customerMapper;
 
+    @Rollback
+    @Transactional
+    @Test
+    void deleteByIdFound(){
+
+        Customer customer = customerRepository.findAll().get(0);
+        ResponseEntity responseEntity = customerController.deleteCustomerById(customer.getId());
+
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatusCode.valueOf(204));
+        assertThat(customerRepository.findById(customer.getId()).isEmpty());
+    }
+
+    @Test
+    void testDeleteByIdNotFound(){
+
+        assertThrows(NotFoundException.class, () -> {
+            customerController.deleteCustomerById(UUID.randomUUID());
+        });
+    }
+
     @Test
     void testUpdateNotFound(){
 
@@ -38,6 +58,8 @@ public class CustomerControllerIT {
         });
     }
 
+    @Rollback
+    @Transactional
     @Test
     void updateExistingCustomer(){
         Customer customer = customerRepository.findAll().get(0);
@@ -94,6 +116,27 @@ public class CustomerControllerIT {
     @Transactional
     @Test
     void saveNewCustomerTest(){
+
+        CustomerDTO customerDTO = CustomerDTO.builder()
+                .name("New Customer")
+                .build();
+
+        ResponseEntity responseEntity = customerController.handlePost(customerDTO);
+
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatusCode.valueOf(201));
+        assertThat(responseEntity.getHeaders().getLocation()).isNotNull();
+
+        String[] localtionUUID = responseEntity.getHeaders().getLocation().getPath().split("/");
+        UUID savedUUID = UUID.fromString(localtionUUID[4]);
+
+        Customer customer =customerRepository.findById(savedUUID).get();
+        assertThat(customer).isNotNull();
+    }
+
+    @Rollback
+    @Transactional
+    @Test
+    void patchCustomerTest(){
 
         CustomerDTO customerDTO = CustomerDTO.builder()
                 .name("New Customer")
